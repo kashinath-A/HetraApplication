@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Hetra</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="./logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="./logo.jpg">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Hetra">
+    <meta name="description" content="Hetra - track workouts, nutrition, hydration and calories. Works offline.">
+    <meta id="meta-theme-color" name="theme-color" content="#14b8a6">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        :root { --theme-color: #14b8a6; --theme-light: rgba(20, 184, 166, 0.2); --theme-bg: rgba(20, 184, 166, 0.1); }
+        .theme-bg { background-color: var(--theme-color) !important; }
+        .theme-text { color: var(--theme-color) !important; }
+        .theme-border { border-color: var(--theme-color) !important; }
+        .theme-ring:focus { outline: none; box-shadow: 0 0 0 3px var(--theme-light) !important; border-color: var(--theme-color) !important; }
+        .theme-accent { accent-color: var(--theme-color) !important; }
+        .theme-soft-bg { background-color: var(--theme-bg) !important; }
+        body, div, input, button, header, p, h1, h2, h3, h4, span, label, select { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+        
+        .safe-top { padding-top: calc(1rem + env(safe-area-inset-top)); }
+        body { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+        .page-in { animation: pageIn .38s cubic-bezier(.2,.8,.2,1) both; }
+        @keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        
+        .hero { background: linear-gradient(125deg, var(--theme-color), #0f172a 120%); background-size: 220% 220%; animation: drift 12s ease-in-out infinite alternate; }
+        @keyframes drift { to { background-position: 100% 100%; } }
+        
+        .tab { color: #9ca3af; transition: color .2s; } .tab.on { color: var(--theme-color); }
+        .chart-container { position: relative; height: 200px; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors">
+    <header class="safe-top theme-bg text-white p-4 shadow-md sticky top-0 z-20 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <img src="./logo.jpg" alt="Hetra Logo" class="w-9 h-9 rounded-full border-2 border-white shadow-sm object-cover">
+            <h1 class="text-2xl font-bold tracking-wide">Hetra</h1>
+        </div>
+        <button onclick="toggleSettings()" class="text-white hover:bg-white/20 p-2 rounded-full transition w-10 h-10 flex items-center justify-center">
+            <i class="fas fa-cog text-lg"></i>
+        </button>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 mt-2 space-y-6">
+        
+        <!-- PAGE: HOME -->
+        <section id="page-home" class="page">
+            <div class="hero rounded-3xl p-6 text-white shadow-lg mb-6 relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-black mb-1" id="greetingText">Good morning.</h2>
+                    <p class="text-white/80 font-medium mb-6"><span id="homeStreak">0</span> Day Streak 🔥</p>
+                    
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider font-bold text-white/60 mb-1">Today's Score</p>
+                            <div class="flex items-baseline space-x-1">
+                                <span class="text-5xl font-black" id="homeProgressNum">0</span><span class="text-xl font-bold text-white/70">%</span>
+                            </div>
+                        </div>
+                        <button onclick="switchNavTab('log')" class="bg-white text-gray-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition">Log Now</button>
+                    </div>
+                </div>
+                <svg class="absolute -bottom-10 -right-10 w-48 h-48 text-white/10 transform rotate-12" fill="currentColor" viewBox="0 0 20 20"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            
+            <h3 class="font-bold text-gray-800 dark:text-gray-100 text-lg mb-3">Today at a glance</h3>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500"><i class="fas fa-fire"></i></div>
+                        <span class="text-xs font-bold text-gray-400">KCAL</span>
+                    </div>
+                    <span class="text-2xl font-black text-gray-800 dark:text-white" id="homeCals">0</span>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500"><i class="fas fa-tint"></i></div>
+                        <span class="text-xs font-bold text-gray-400">LITERS</span>
+                    </div>
+                    <span class="text-2xl font-black text-gray-800 dark:text-white" id="homeWater">0</span>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-full theme-soft-bg theme-text flex items-center justify-center"><i class="fas fa-drumstick-bite"></i></div>
+                        <span class="text-xs font-bold text-gray-400">PRO (g)</span>
+                    </div>
+                    <span class="text-2xl font-black text-gray-800 dark:text-white" id="homeProtein">0</span>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-500"><i class="fas fa-dumbbell"></i></div>
+                        <span class="text-xs font-bold text-gray-400">HABITS</span>
+                    </div>
+                    <span class="text-2xl font-black text-gray-800 dark:text-white" id="homeHabits">0/4</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: LOG -->
+        <section id="page-log" class="page hidden">
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Daily Log</h2>
+                    <input type="date" id="dateInput" class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-700 dark:text-gray-200 theme-ring">
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Calorie Summary Badge -->
+                    <div class="flex justify-between items-center bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-800/30 shadow-sm">
+                        <div class="flex items-center">
+                            <div class="bg-orange-100 dark:bg-orange-900/50 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-fire text-orange-500 text-lg"></i>
+                            </div>
+                            <span class="font-bold text-gray-800 dark:text-gray-200">Total Calories</span>
+                        </div>
+                        <span class="text-2xl font-black text-orange-600 dark:text-orange-400" id="totalCaloriesDisplay">0 kcal</span>
+                    </div>
+
+                    <!-- Habits & Workouts -->
+                    <div>
+                        <h3 class="font-medium theme-text mb-3 flex items-center"><i class="fas fa-running mr-2"></i>Workouts & Activity</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer">
+                                <input type="checkbox" id="badminton" class="w-5 h-5 theme-accent rounded theme-ring">
+                                <span class="text-gray-700 dark:text-gray-200 w-full select-none">Played Badminton</span>
+                            </label>
+                            <label class="flex items-center space-x-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer">
+                                <input type="checkbox" id="dumbbells" class="w-5 h-5 theme-accent rounded theme-ring">
+                                <span class="text-gray-700 dark:text-gray-200 w-full select-none">Evening Dumbbell Workout</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Nutrition -->
+                    <div>
+                        <h3 class="font-medium theme-text mb-3 flex items-center"><i class="fas fa-apple-alt mr-2"></i>Nutrition & Hydration</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide font-semibold">Protein (g)</label>
+                                <input type="number" id="protein" placeholder="e.g. 120" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl p-2.5 theme-ring">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide font-semibold">Water (L)</label>
+                                <input type="number" step="0.1" id="water" placeholder="e.g. 3.5" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl p-2.5 theme-ring">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer">
+                                <input type="checkbox" id="creatine" class="w-5 h-5 theme-accent rounded theme-ring">
+                                <span class="text-gray-700 dark:text-gray-200 text-sm w-full select-none">Took Creatine</span>
+                            </label>
+                            <label class="flex items-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer">
+                                <input type="checkbox" id="fruits" class="w-5 h-5 theme-accent rounded theme-ring">
+                                <span class="text-gray-700 dark:text-gray-200 text-sm w-full select-none">Ate Fruits</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- NEW TABBED MEAL BUILDER -->
+                    <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <h3 class="font-medium theme-text mb-4 flex items-center"><i class="fas fa-utensils mr-2"></i>Smart Meals</h3>
+                        
+                        <!-- Scrollable Tabs -->
+                        <div class="flex overflow-x-auto space-x-2 pb-3 hide-scrollbar">
+                            <button onclick="switchTab('breakfast')" id="tab-breakfast" class="meal-tab theme-bg text-white px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap shadow-sm">Breakfast</button>
+                            <button onclick="switchTab('morning_snack')" id="tab-morning_snack" class="meal-tab bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap">Morning Snack</button>
+                            <button onclick="switchTab('lunch')" id="tab-lunch" class="meal-tab bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap">Lunch</button>
+                            <button onclick="switchTab('evening_snack')" id="tab-evening_snack" class="meal-tab bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap">Evening Snack</button>
+                            <button onclick="switchTab('dinner')" id="tab-dinner" class="meal-tab bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap">Dinner</button>
+                        </div>
+
+                        <!-- Tab Views -->
+                        <div class="mt-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 min-h-[160px]">
+                            
+                            <!-- Dynamic View Template -->
+                            <div id="view-breakfast" class="meal-view">
+                                <div class="flex justify-between items-end mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <label class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Breakfast Items</label>
+                                    <span class="text-sm font-bold text-orange-500" id="cals-breakfast">0 kcal</span>
+                                </div>
+                                <div id="list-breakfast" class="space-y-2 mb-4"></div>
+                                <button onclick="openAddFoodModal('breakfast')" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-[0.98]">
+                                    <i class="fas fa-plus mr-1"></i> Add Food Item
+                                </button>
+                            </div>
+
+                            <div id="view-morning_snack" class="meal-view hidden">
+                                <div class="flex justify-between items-end mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <label class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Morning Snack Items</label>
+                                    <span class="text-sm font-bold text-orange-500" id="cals-morning_snack">0 kcal</span>
+                                </div>
+                                <div id="list-morning_snack" class="space-y-2 mb-4"></div>
+                                <button onclick="openAddFoodModal('morning_snack')" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-[0.98]">
+                                    <i class="fas fa-plus mr-1"></i> Add Snack Item
+                                </button>
+                            </div>
+
+                            <div id="view-lunch" class="meal-view hidden">
+                                <div class="flex justify-between items-end mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <label class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Lunch Items</label>
+                                    <span class="text-sm font-bold text-orange-500" id="cals-lunch">0 kcal</span>
+                                </div>
+                                <div id="list-lunch" class="space-y-2 mb-4"></div>
+                                <button onclick="openAddFoodModal('lunch')" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-[0.98]">
+                                    <i class="fas fa-plus mr-1"></i> Add Food Item
+                                </button>
+                            </div>
+
+                            <div id="view-evening_snack" class="meal-view hidden">
+                                <div class="flex justify-between items-end mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <label class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Evening Snack Items</label>
+                                    <span class="text-sm font-bold text-orange-500" id="cals-evening_snack">0 kcal</span>
+                                </div>
+                                <div id="list-evening_snack" class="space-y-2 mb-4"></div>
+                                <button onclick="openAddFoodModal('evening_snack')" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-[0.98]">
+                                    <i class="fas fa-plus mr-1"></i> Add Snack Item
+                                </button>
+                            </div>
+
+                            <div id="view-dinner" class="meal-view hidden">
+                                <div class="flex justify-between items-end mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <label class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">Dinner Items</label>
+                                    <span class="text-sm font-bold text-orange-500" id="cals-dinner">0 kcal</span>
+                                </div>
+                                <div id="list-dinner" class="space-y-2 mb-4"></div>
+                                <button onclick="openAddFoodModal('dinner')" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition active:scale-[0.98]">
+                                    <i class="fas fa-plus mr-1"></i> Add Food Item
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <button onclick="saveLog()" id="saveBtn" class="w-full theme-bg text-white font-bold py-3.5 mt-4 rounded-xl shadow-md active:transform active:scale-[0.98] transition-all flex justify-center items-center">
+                        <span id="btnText">Save Daily Log</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: HISTORY -->
+        <section id="page-history" class="page hidden">
+            <div>
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100"><i class="fas fa-history mr-2 text-gray-400"></i>History Log</h2>
+                <div id="historyContainer" class="space-y-4 pb-4"></div>
+            </div>
+        </section>
+
+        <!-- PAGE: INSIGHTS -->
+        <section id="page-insights" class="page hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100"><i class="fas fa-chart-line mr-2 text-gray-400"></i>Your Insights</h2>
+            
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-4">
+                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">Calorie Trend (Last 7 Days)</h3>
+                <div class="chart-container">
+                    <canvas id="calsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-4">
+                <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-4">Protein Intake (Last 7 Days)</h3>
+                <div class="chart-container">
+                    <canvas id="proteinChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="text-xs font-bold text-gray-400 mb-1">TOTAL LOGS</div>
+                    <div class="text-xl font-black theme-text" id="statTotalLogs">0</div>
+                </div>
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="text-xs font-bold text-gray-400 mb-1">BADMINTON</div>
+                    <div class="text-xl font-black text-blue-500" id="statBadminton">0</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM TAB NAVIGATION -->
+    <nav id="tabbar" class="fixed bottom-0 inset-x-0 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-t border-gray-200 dark:border-gray-800" style="padding-bottom:env(safe-area-inset-bottom)">
+        <div class="relative max-w-md mx-auto grid grid-cols-4">
+            <!-- Indicator line -->
+            <div id="tabInd" class="absolute top-0 left-0 w-1/4 h-0.5 transition-transform duration-300 ease-out"><div class="mx-auto w-10 h-full theme-bg rounded-b"></div></div>
+            
+            <button onclick="switchNavTab('home')" id="nav-home" class="tab py-2.5 flex flex-col items-center text-xs font-semibold on"><i class="fas fa-house text-lg mb-0.5"></i>Home</button>
+            <button onclick="switchNavTab('log')" id="nav-log" class="tab py-2.5 flex flex-col items-center text-xs font-semibold"><i class="fas fa-pen-to-square text-lg mb-0.5"></i>Log</button>
+            <button onclick="switchNavTab('history')" id="nav-history" class="tab py-2.5 flex flex-col items-center text-xs font-semibold"><i class="fas fa-clock-rotate-left text-lg mb-0.5"></i>History</button>
+            <button onclick="switchNavTab('insights')" id="nav-insights" class="tab py-2.5 flex flex-col items-center text-xs font-semibold"><i class="fas fa-chart-simple text-lg mb-0.5"></i>Insights</button>
+        </div>
+    </nav>
+
+    <!-- ADD FOOD MODAL -->
+    <div id="addFoodModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300 px-4">
+        <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300" id="addFoodContent">
+            <div class="flex justify-between items-center mb-5 border-b border-gray-100 dark:border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Add to <span id="modalMealTitle" class="capitalize theme-text">Meal</span></h3>
+                <button onclick="closeAddFoodModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Category</label>
+                    <select id="foodCategory" onchange="renderFoodItems()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl p-3 theme-ring appearance-none"></select>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Item</label>
+                    <select id="foodItem" onchange="onFoodItemChange()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl p-3 theme-ring appearance-none"></select>
+                </div>
+
+                <div id="manualInputGroup" class="hidden space-y-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <input type="text" id="manualName" placeholder="Food Name (e.g., Pizza)" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-sm text-gray-800 dark:text-gray-100 theme-ring">
+                    <input type="number" id="manualCals" placeholder="Total Calories" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-sm text-gray-800 dark:text-gray-100 theme-ring">
+                </div>
+
+                <div id="qtyGroup">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Amount</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="number" id="foodQty" step="0.1" value="1" class="w-1/2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl p-3 theme-ring">
+                        <span id="foodUnitLabel" class="text-sm font-medium text-gray-600 dark:text-gray-300">pieces</span>
+                    </div>
+                </div>
+
+                <button onclick="confirmAddFood()" class="w-full theme-bg text-white font-bold py-3 mt-2 rounded-xl shadow-md active:transform active:scale-[0.98] transition-all">
+                    Add Item
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300 overflow-y-auto pt-10 pb-10">
+        <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-2xl w-11/12 max-w-sm transform scale-95 transition-transform duration-300 my-auto" id="settingsContent">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white"><i class="fas fa-sliders-h mr-2 theme-text"></i>App Settings</h3>
+                <button onclick="toggleSettings()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <span class="block text-gray-800 dark:text-gray-200 font-medium">Dark Mode</span>
+                    <span class="text-xs text-gray-500">Toggle dark appearance</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="darkModeToggle" class="sr-only peer" onchange="toggleDarkMode()">
+                    <div class="w-12 h-6 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all theme-accent"></div>
+                </label>
+            </div>
+            
+            <div class="mb-8">
+                <span class="block text-gray-800 dark:text-gray-200 font-medium mb-1">Theme Color</span>
+                <span class="block text-xs text-gray-500 mb-4">Choose your favorite accent color</span>
+                <div class="flex justify-between">
+                    <button onclick="setTheme('teal', '#14b8a6')" class="w-10 h-10 rounded-full bg-[#14b8a6] focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ring-[#14b8a6] transition-transform hover:scale-110 shadow-sm"></button>
+                    <button onclick="setTheme('blue', '#3b82f6')" class="w-10 h-10 rounded-full bg-[#3b82f6] focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ring-[#3b82f6] transition-transform hover:scale-110 shadow-sm"></button>
+                    <button onclick="setTheme('violet', '#8b5cf6')" class="w-10 h-10 rounded-full bg-[#8b5cf6] focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ring-[#8b5cf6] transition-transform hover:scale-110 shadow-sm"></button>
+                    <button onclick="setTheme('rose', '#f43f5e')" class="w-10 h-10 rounded-full bg-[#f43f5e] focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ring-[#f43f5e] transition-transform hover:scale-110 shadow-sm"></button>
+                    <button onclick="setTheme('orange', '#f97316')" class="w-10 h-10 rounded-full bg-[#f97316] focus:outline-none focus:ring-4 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ring-[#f97316] transition-transform hover:scale-110 shadow-sm"></button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="block text-gray-800 dark:text-gray-200 font-medium mb-1">Food Dictionary</span>
+                <span class="block text-xs text-gray-500 mb-3">Add custom foods to auto-calculate calories</span>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="newFoodName" placeholder="Food name" class="w-1/2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-800 dark:text-gray-200 theme-ring">
+                    <input type="number" id="newFoodCals" placeholder="Kcal" class="w-1/3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-800 dark:text-gray-200 theme-ring">
+                    <button onclick="addCustomFood()" class="w-1/6 theme-bg text-white rounded-lg active:scale-95 transition-transform"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="customFoodList" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            </div>
+            
+            <div class="pt-6 border-t border-gray-100 dark:border-gray-800 mt-6">
+                <span class="block text-gray-800 dark:text-gray-200 font-medium mb-1">Your Data</span>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <button onclick="exportData()" class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold bg-gray-50 dark:bg-gray-800 active:scale-[0.98] transition"><i class="fas fa-download mr-1"></i>Backup Data</button>
+                    <label class="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold bg-gray-50 dark:bg-gray-800 active:scale-[0.98] transition cursor-pointer text-center"><i class="fas fa-upload mr-1"></i>Import<input type="file" accept="application/json,.json" class="hidden" onchange="importData(event)"></label>
+                </div>
+                <button onclick="deleteAllData()" class="w-full mt-3 py-2 text-sm font-semibold text-red-500 hover:text-red-600 transition">Delete All Logs</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- NAVIGATION & PAGE LOGIC ---
+        const pages = ['home', 'log', 'history', 'insights'];
+        let activePage = 'home';
+        
+        function switchNavTab(targetPage) {
+            if (targetPage === activePage) return;
+            
+            // UI tabs
+            pages.forEach((page, index) => {
+                const el = document.getElementById('nav-' + page);
+                if (page === targetPage) {
+                    el.classList.add('on');
+                    document.getElementById('tabInd').style.transform = `translateX(${index * 100}%)`;
+                } else {
+                    el.classList.remove('on');
+                }
+                document.getElementById('page-' + page).classList.add('hidden');
+            });
+            
+            // Show new page
+            const newPage = document.getElementById('page-' + targetPage);
+            newPage.classList.remove('hidden');
+            newPage.classList.add('page-in');
+            setTimeout(() => newPage.classList.remove('page-in'), 400);
+            
+            activePage = targetPage;
+            
+            // Trigger specific page updates
+            if(targetPage === 'home') updateHomeDash();
+            if(targetPage === 'insights') renderCharts();
+        }
+
+        // --- SUB-TABS (MEALS) ---
+        const mealKeys = ['breakfast', 'morning_snack', 'lunch', 'evening_snack', 'dinner'];
+        function switchTab(targetMeal) {
+            mealKeys.forEach(meal => {
+                document.getElementById('view-' + meal).classList.add('hidden');
+                let tab = document.getElementById('tab-' + meal);
+                tab.classList.remove('theme-bg', 'text-white', 'shadow-sm');
+                tab.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-300');
+            });
+            document.getElementById('view-' + targetMeal).classList.remove('hidden');
+            let activeTab = document.getElementById('tab-' + targetMeal);
+            activeTab.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-300');
+            activeTab.classList.add('theme-bg', 'text-white', 'shadow-sm');
+        }
+
+        // --- CORE DB ---
+        const foodDb = {
+            "Main Menu": [
+                { id: "dosa", name: "Dosa", cals: 133, unit: "pieces" },
+                { id: "chapathi", name: "Chapathi", cals: 104, unit: "pieces" },
+                { id: "poori", name: "Poori", cals: 141, unit: "pieces" },
+                { id: "appam", name: "Appam", cals: 120, unit: "pieces" },
+                { id: "puttu", name: "Puttu", cals: 180, unit: "pieces" },
+                { id: "idiyappam", name: "Idiyappam", cals: 80, unit: "pieces" },
+                { id: "uppumaav", name: "Uppumaav", cals: 150, unit: "bowls" },
+                { id: "idli", name: "Idli", cals: 39, unit: "pieces" },
+                { id: "rice", name: "Rice", cals: 1.30, unit: "grams" }
+            ],
+            "Curry Items": [
+                { id: "sambar", name: "Sambar", cals: 130, unit: "bowls" },
+                { id: "chutney", name: "Chutney (Chaktni)", cals: 50, unit: "servings" },
+                { id: "kadala", name: "Kadala", cals: 160, unit: "bowls" },
+                { id: "green_peas", name: "Green Peas", cals: 120, unit: "bowls" },
+                { id: "egg_curry", name: "Egg Curry", cals: 78, unit: "eggs" },
+                { id: "chicken", name: "Chicken", cals: 1.65, unit: "grams" }
+            ],
+            "Snacks & Dairy": [
+                { id: "milk", name: "Milk", cals: 103, unit: "glasses" },
+                { id: "egg_boiled", name: "Boiled Egg", cals: 78, unit: "pieces" },
+                { id: "egg_omelette", name: "Omelette", cals: 154, unit: "pieces" },
+                { id: "whey", name: "Whey Protein", cals: 120, unit: "scoops" },
+                { id: "oats", name: "Oats", cals: 150, unit: "bowls" },
+                { id: "peanut_butter", name: "Peanut Butter", cals: 188, unit: "spoons" }
+            ],
+            "Fruits": [
+                { id: "apple", name: "Apple", cals: 95, unit: "pieces" },
+                { id: "orange", name: "Orange", cals: 62, unit: "pieces" },
+                { id: "banana", name: "Banana", cals: 105, unit: "pieces" },
+                { id: "avocado", name: "Avocado", cals: 240, unit: "pieces" },
+                { id: "pomegranate", name: "Pomegranate", cals: 140, unit: "medium bowls" },
+                { id: "watermelon", name: "Watermelon", cals: 45, unit: "medium bowls" },
+                { id: "grapes", name: "Grapes", cals: 60, unit: "medium bowls" }
+            ]
+        };
+
+        let customFoods = JSON.parse(localStorage.getItem('hetra_customFoods')) || {};
+        let currentMeals = { breakfast: [], morning_snack: [], lunch: [], evening_snack: [], dinner: [] };
+        let activeModalMeal = '';
+
+        function getFullDb() {
+            let customItems = [];
+            for (let f in customFoods) {
+                customItems.push({ id: f, name: f, cals: customFoods[f], unit: "servings" });
+            }
+            return {
+                ...foodDb,
+                "Custom Saved": customItems,
+                "Other": [{ id: "manual", name: "Type manually...", cals: 0, unit: "custom" }]
+            };
+        }
+
+        // --- MODAL & MEALS LOGIC ---
+        function openAddFoodModal(meal) {
+            activeModalMeal = meal;
+            document.getElementById('modalMealTitle').innerText = meal.replace('_', ' ');
+            const db = getFullDb();
+            const catSelect = document.getElementById('foodCategory');
+            catSelect.innerHTML = '';
+            for (let cat in db) {
+                if(db[cat].length > 0) catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+            }
+            if(meal.includes('snack')) catSelect.value = "Snacks & Dairy";
+            renderFoodItems();
+            
+            const modal = document.getElementById('addFoodModal');
+            const content = document.getElementById('addFoodContent');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            });
+        }
+
+        function closeAddFoodModal() {
+            const modal = document.getElementById('addFoodModal');
+            const content = document.getElementById('addFoodContent');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function renderFoodItems() {
+            const cat = document.getElementById('foodCategory').value;
+            const db = getFullDb();
+            const itemSelect = document.getElementById('foodItem');
+            itemSelect.innerHTML = '';
+            db[cat].forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-cals="${item.cals}" data-unit="${item.unit}" data-name="${item.name}">${item.name}</option>`;
+            });
+            onFoodItemChange();
+        }
+
+        function onFoodItemChange() {
+            const select = document.getElementById('foodItem');
+            const option = select.options[select.selectedIndex];
+            
+            if (option.value === "manual") {
+                document.getElementById('manualInputGroup').classList.remove('hidden');
+                document.getElementById('qtyGroup').classList.add('hidden');
+            } else {
+                document.getElementById('manualInputGroup').classList.add('hidden');
+                document.getElementById('qtyGroup').classList.remove('hidden');
+                document.getElementById('foodUnitLabel').innerText = option.getAttribute('data-unit');
+                
+                if(option.getAttribute('data-unit') === 'grams') document.getElementById('foodQty').value = 100;
+                else document.getElementById('foodQty').value = 1;
+            }
+        }
+
+        function confirmAddFood() {
+            const select = document.getElementById('foodItem');
+            const option = select.options[select.selectedIndex];
+            
+            let name, qty, unit, calsPerUnit, totalItemCals;
+            if (option.value === "manual") {
+                name = document.getElementById('manualName').value.trim();
+                totalItemCals = parseFloat(document.getElementById('manualCals').value);
+                if(!name || isNaN(totalItemCals)) return alert("Please enter custom food name and calories.");
+                qty = 1;
+                unit = "serving";
+            } else {
+                name = option.getAttribute('data-name');
+                unit = option.getAttribute('data-unit');
+                calsPerUnit = parseFloat(option.getAttribute('data-cals'));
+                qty = parseFloat(document.getElementById('foodQty').value);
+                if(isNaN(qty) || qty <= 0) return alert("Please enter a valid amount.");
+                totalItemCals = Math.round(calsPerUnit * qty);
+            }
+            currentMeals[activeModalMeal].push({ name, qty, unit, cals: totalItemCals });
+
+            document.getElementById('manualName').value = '';
+            document.getElementById('manualCals').value = '';
+            closeAddFoodModal();
+            renderMealLists();
+            updateCaloriesLive();
+        }
+
+        function removeFood(meal, index) {
+            currentMeals[meal].splice(index, 1);
+            renderMealLists();
+            updateCaloriesLive();
+        }
+
+        function renderMealLists() {
+            mealKeys.forEach(meal => {
+                const list = document.getElementById('list-' + meal);
+                list.innerHTML = '';
+                let mealCals = 0;
+                
+                currentMeals[meal].forEach((item, index) => {
+                    mealCals += item.cals;
+                    let amountText = item.unit === "serving" || item.unit === "custom" ? "" : `${item.qty} ${item.unit}`;
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center bg-white dark:bg-gray-900 p-2 rounded-lg text-sm border border-gray-200 dark:border-gray-700 shadow-sm mb-2">
+                            <div>
+                                <span class="font-bold text-gray-800 dark:text-gray-200 capitalize">${item.name}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">${amountText}</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">${item.cals} kcal</span>
+                                <button onclick="removeFood('${meal}', ${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-times-circle"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('cals-' + meal).innerText = mealCals > 0 ? `🔥 ${mealCals} kcal` : '0 kcal';
+            });
+        }
+
+        function updateCaloriesLive() {
+            let total = 0;
+            mealKeys.forEach(meal => {
+                currentMeals[meal].forEach(item => total += item.cals);
+            });
+            document.getElementById('totalCaloriesDisplay').innerText = total + ' kcal';
+            return total;
+        }
+
+        // --- DASHBOARD / HOME LOGIC ---
+        function getStreak(logs) {
+            let streak = 0;
+            let current = new Date();
+            current.setHours(0,0,0,0);
+            
+            // Check if today is logged
+            let todayStr = current.toISOString().split('T')[0];
+            let checkDate = new Date(current);
+            
+            if (!logs[todayStr]) {
+                // If today isn't logged, check yesterday
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+            
+            while(true) {
+                let dStr = checkDate.toISOString().split('T')[0];
+                if (logs[dStr]) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function updateHomeDash() {
+            let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+            const todayStr = new Date().toISOString().split('T')[0];
+            const log = logs[todayStr];
+            
+            document.getElementById('homeStreak').innerText = getStreak(logs);
+            
+            // Greet based on time
+            const hour = new Date().getHours();
+            let greeting = 'Good evening.';
+            if (hour < 12) greeting = 'Good morning.';
+            else if (hour < 18) greeting = 'Good afternoon.';
+            document.getElementById('greetingText').innerText = greeting;
+            
+            if (log) {
+                let score = 0;
+                if(log.badminton) score++;
+                if(log.dumbbells) score++;
+                if(log.creatine) score++;
+                if(log.fruits) score++;
+                if(log.protein && log.protein > 0) score++;
+                if(log.water && log.water > 0) score++;
+                
+                document.getElementById('homeProgressNum').innerText = Math.round((score/6)*100);
+                document.getElementById('homeCals').innerText = log.totalCalories || 0;
+                document.getElementById('homeWater').innerText = log.water || 0;
+                document.getElementById('homeProtein').innerText = log.protein || 0;
+                document.getElementById('homeHabits').innerText = [log.badminton, log.dumbbells, log.creatine, log.fruits].filter(Boolean).length + '/4';
+            } else {
+                document.getElementById('homeProgressNum').innerText = "0";
+                document.getElementById('homeCals').innerText = "0";
+                document.getElementById('homeWater').innerText = "0";
+                document.getElementById('homeProtein').innerText = "0";
+                document.getElementById('homeHabits').innerText = "0/4";
+            }
+        }
+
+        // --- CHARTS (INSIGHTS) ---
+        let calsChartInstance = null;
+        let proteinChartInstance = null;
+        
+        function renderCharts() {
+            let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+            const dates = [];
+            const cals = [];
+            const protein = [];
+            
+            let totalLogs = 0;
+            let badmintonCount = 0;
+            
+            // Build last 7 days array
+            for(let i=6; i>=0; i--) {
+                let d = new Date();
+                d.setDate(d.getDate() - i);
+                let dStr = d.toISOString().split('T')[0];
+                let displayDate = d.toLocaleDateString('en-US', { weekday: 'short' });
+                
+                dates.push(displayDate);
+                if (logs[dStr]) {
+                    cals.push(logs[dStr].totalCalories || 0);
+                    protein.push(parseFloat(logs[dStr].protein) || 0);
+                } else {
+                    cals.push(0);
+                    protein.push(0);
+                }
+            }
+            
+            // Stats
+            for(let key in logs) {
+                totalLogs++;
+                if(logs[key].badminton) badmintonCount++;
+            }
+            document.getElementById('statTotalLogs').innerText = totalLogs;
+            document.getElementById('statBadminton').innerText = badmintonCount;
+            
+            const themeHex = getComputedStyle(document.documentElement).getPropertyValue('--theme-color').trim() || '#14b8a6';
+            
+            // Chart.js global defaults
+            Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280';
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            // Calories Chart
+            const ctxCals = document.getElementById('calsChart').getContext('2d');
+            if (calsChartInstance) calsChartInstance.destroy();
+            calsChartInstance = new Chart(ctxCals, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Calories',
+                        data: cals,
+                        backgroundColor: '#f97316',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // Protein Chart
+            const ctxPro = document.getElementById('proteinChart').getContext('2d');
+            if (proteinChartInstance) proteinChartInstance.destroy();
+            proteinChartInstance = new Chart(ctxPro, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Protein (g)',
+                        data: protein,
+                        borderColor: themeHex,
+                        backgroundColor: themeHex + '40',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        // --- HISTORY LOGIC ---
+        function renderHistoryMealString(mealData) {
+            if(!mealData) return '';
+            if(typeof mealData === 'string') return mealData; 
+            if(Array.isArray(mealData)) {
+                if(mealData.length === 0) return '';
+                return mealData.map(item => {
+                    let amountStr = (item.unit === 'custom' || item.unit === 'serving') ? '' : `<span class="font-bold text-gray-800 dark:text-gray-300">${item.qty} ${item.unit}</span> `;
+                    return `${amountStr}${item.name}`;
+                }).join(', ');
+            }
+            return '';
+        }
+
+        function buildHistoryMealRow(label, data) {
+            const rendered = renderHistoryMealString(data);
+            if (!rendered) return ''; 
+            return `<div class="flex mb-1"><span class="theme-text font-bold w-14">${label}:</span> <span class="text-gray-500 dark:text-gray-400 ml-1 leading-tight flex-1">${rendered}</span></div>`;
+        }
+
+        function deleteHistoryLog(date) {
+            if (confirm(`Delete the log for ${date}?`)) {
+                let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+                delete logs[date];
+                localStorage.setItem('hetraLogs', JSON.stringify(logs));
+                
+                const currentDate = document.getElementById('dateInput').value;
+                if (currentDate === date) {
+                    document.getElementById('dateInput').dispatchEvent(new Event('change'));
+                }
+                loadHistory(); 
+                updateHomeDash();
+            }
+        }
+
+        function loadHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+            const sortedDates = Object.keys(logs).sort((a, b) => new Date(b) - new Date(a));
+            
+            if (sortedDates.length === 0) {
+                historyContainer.innerHTML = '<div class="text-gray-400 dark:text-gray-500 text-center italic py-10 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"><i class="fas fa-clipboard-list text-3xl mb-3 opacity-50 block"></i>No logs yet. Start tracking!</div>';
+                return;
+            }
+
+            let html = '';
+            sortedDates.forEach(date => {
+                const log = logs[date];
+                html += `
+                    <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 transform transition hover:-translate-y-1 hover:shadow-md relative">
+                        <div class="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+                            <h4 class="font-bold text-gray-800 dark:text-white flex items-center">
+                                <i class="far fa-calendar-alt mr-2 theme-text"></i>${date}
+                            </h4>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs font-bold bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400 px-2 py-1 rounded-md">
+                                    <i class="fas fa-fire mr-1"></i>${log.totalCalories || 0} kcal
+                                </span>
+                                <button onclick="deleteHistoryLog('${date}')" class="text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors p-1" title="Delete log">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 text-sm mb-4">
+                            <div class="flex items-center text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
+                                <i class="fas ${log.badminton ? 'fa-check-circle theme-text' : 'fa-circle text-gray-300 dark:text-gray-600'} w-5 text-lg"></i>
+                                <span class="font-medium">Badminton</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
+                                <i class="fas ${log.dumbbells ? 'fa-check-circle theme-text' : 'fa-circle text-gray-300 dark:text-gray-600'} w-5 text-lg"></i>
+                                <span class="font-medium">Dumbbells</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
+                                <i class="fas ${log.creatine ? 'fa-check-circle theme-text' : 'fa-circle text-gray-300 dark:text-gray-600'} w-5 text-lg"></i>
+                                <span class="font-medium">Creatine</span>
+                            </div>
+                            <div class="flex items-center text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
+                                <i class="fas ${log.fruits ? 'fa-check-circle theme-text' : 'fa-circle text-gray-300 dark:text-gray-600'} w-5 text-lg"></i>
+                                <span class="font-medium">Fruits</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mb-4 text-sm">
+                            <div class="theme-soft-bg theme-text px-3 py-1.5 rounded-lg font-bold flex-1 text-center border theme-border border-opacity-20">
+                                <i class="fas fa-drumstick-bite mr-1"></i> ${log.protein || 0}g
+                            </div>
+                            <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg font-bold flex-1 text-center border border-blue-100 dark:border-blue-800/50">
+                                <i class="fas fa-tint mr-1"></i> ${log.water || 0}L
+                            </div>
+                        </div>
+
+                        <div class="text-sm bg-gray-50 dark:bg-gray-800 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700">
+                            ${buildHistoryMealRow('BRKFST', log.breakfastItems || log.breakfast)}
+                            ${buildHistoryMealRow('M. SNACK', log.morning_snackItems)}
+                            ${buildHistoryMealRow('LUNCH', log.lunchItems || log.lunch)}
+                            ${buildHistoryMealRow('E. SNACK', log.evening_snackItems)}
+                            ${buildHistoryMealRow('DINNER', log.dinnerItems || log.dinner)}
+                            ${(!log.breakfastItems && !log.lunchItems && !log.dinnerItems && !log.morning_snackItems && !log.evening_snackItems && !log.breakfast && !log.lunch && !log.dinner) ? '<div class="text-gray-400 italic text-center">No meals logged</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            historyContainer.innerHTML = html;
+        }
+
+        // --- DATA & SETTINGS LOGIC ---
+        function saveLog() {
+            const date = document.getElementById('dateInput').value;
+            if (!date) return alert('Please select a date');
+            const logData = {
+                badminton: document.getElementById('badminton').checked,
+                dumbbells: document.getElementById('dumbbells').checked,
+                protein: document.getElementById('protein').value,
+                water: document.getElementById('water').value,
+                creatine: document.getElementById('creatine').checked,
+                fruits: document.getElementById('fruits').checked,
+                breakfastItems: currentMeals.breakfast,
+                morning_snackItems: currentMeals.morning_snack,
+                lunchItems: currentMeals.lunch,
+                evening_snackItems: currentMeals.evening_snack,
+                dinnerItems: currentMeals.dinner,
+                totalCalories: updateCaloriesLive()
+            };
+            let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+            logs[date] = logData;
+            localStorage.setItem('hetraLogs', JSON.stringify(logs));
+            
+            const btn = document.getElementById('saveBtn');
+            const originalHTML = document.getElementById('btnText').innerHTML;
+            
+            btn.classList.remove('theme-bg');
+            btn.classList.add('bg-green-500');
+            document.getElementById('btnText').innerHTML = '<i class="fas fa-check-circle mr-2 text-lg"></i>Saved Successfully!';
+            
+            setTimeout(() => {
+                document.getElementById('btnText').innerHTML = originalHTML;
+                btn.classList.remove('bg-green-500');
+                btn.classList.add('theme-bg');
+            }, 2000);
+
+            loadHistory();
+            updateHomeDash();
+        }
+
+        function exportData() {
+            let logs = localStorage.getItem('hetraLogs');
+            if(!logs) return alert("No logs to export.");
+            
+            const blob = new Blob([logs], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hetra_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    localStorage.setItem('hetraLogs', JSON.stringify(data));
+                    alert("Data imported successfully!");
+                    window.location.reload();
+                } catch (err) {
+                    alert("Invalid backup file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function deleteAllData() {
+            if(confirm("DANGER: Are you sure you want to delete ALL your logs? This cannot be undone.")) {
+                localStorage.removeItem('hetraLogs');
+                alert("All logs deleted.");
+                window.location.reload();
+            }
+        }
+
+        function addCustomFood() {
+            const name = document.getElementById('newFoodName').value.trim().toLowerCase();
+            const cals = parseInt(document.getElementById('newFoodCals').value);
+            if(name && !isNaN(cals)) {
+                customFoods[name] = cals;
+                localStorage.setItem('hetra_customFoods', JSON.stringify(customFoods));
+                document.getElementById('newFoodName').value = '';
+                document.getElementById('newFoodCals').value = '';
+                renderCustomFoods();
+            }
+        }
+        function deleteCustomFood(name) {
+            delete customFoods[name];
+            localStorage.setItem('hetra_customFoods', JSON.stringify(customFoods));
+            renderCustomFoods();
+        }
+        function renderCustomFoods() {
+            const list = document.getElementById('customFoodList');
+            list.innerHTML = '';
+            for(let food in customFoods) {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2 rounded-lg text-sm border border-gray-100 dark:border-gray-700">
+                        <span class="capitalize text-gray-700 dark:text-gray-300 font-medium">${food} <span class="text-xs text-gray-400 font-normal ml-1">(${customFoods[food]} kcal)</span></span>
+                        <button onclick="deleteCustomFood('${food}')" class="text-red-400 hover:text-red-600 transition-colors p-1"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                `;
+            }
+        }
+
+        // --- FORM EVENTS & INIT ---
+        function updateProgress() {
+            let score = 0;
+            const total = 6;
+            if(document.getElementById('badminton').checked) score++;
+            if(document.getElementById('dumbbells').checked) score++;
+            if(document.getElementById('creatine').checked) score++;
+            if(document.getElementById('fruits').checked) score++;
+            if(document.getElementById('protein').value && parseFloat(document.getElementById('protein').value) > 0) score++;
+            if(document.getElementById('water').value && parseFloat(document.getElementById('water').value) > 0) score++;
+            const percentage = Math.round((score / total) * 100);
+            
+            // Log Page Ring
+            document.getElementById('progressText').innerText = percentage + '% Completed';
+            document.getElementById('progressCircle').setAttribute('stroke-dasharray', `${percentage}, 100`);
+            
+            if(percentage === 100 && !window.confettiFired) {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.5 },
+                    colors: [getComputedStyle(document.documentElement).getPropertyValue('--theme-color').trim(), '#ffffff']
+                });
+                window.confettiFired = true;
+            } else if (percentage < 100) {
+                window.confettiFired = false;
+            }
+        }
+
+        ['badminton', 'dumbbells', 'creatine', 'fruits', 'protein', 'water'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateProgress);
+            document.getElementById(id).addEventListener('change', updateProgress);
+        });
+
+        function toggleSettings() {
+            const modal = document.getElementById('settingsModal');
+            const content = document.getElementById('settingsContent');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    content.classList.remove('scale-95');
+                    content.classList.add('scale-100');
+                });
+            } else {
+                modal.classList.add('opacity-0');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('hetra_darkMode', isDark);
+            document.getElementById('darkModeToggle').checked = isDark;
+            
+            // Re-render charts for color change
+            if(activePage === 'insights') renderCharts();
+        }
+
+        function setTheme(name, hex) {
+            const root = document.documentElement;
+            root.style.setProperty('--theme-color', hex);
+            root.style.setProperty('--theme-light', hex + '4D');
+            root.style.setProperty('--theme-bg', hex + '1A');
+            document.getElementById('meta-theme-color').content = hex;
+            localStorage.setItem('hetra_theme_hex', hex);
+            updateProgress();
+            if(activePage === 'insights') renderCharts();
+        }
+
+        function initSettings() {
+            const isDark = localStorage.getItem('hetra_darkMode') === 'true';
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('darkModeToggle').checked = true;
+            }
+            const savedThemeHex = localStorage.getItem('hetra_theme_hex');
+            if (savedThemeHex) {
+                setTheme('custom', savedThemeHex);
+            }
+            renderCustomFoods();
+        }
+
+        document.getElementById('dateInput').addEventListener('change', function() {
+            const date = this.value;
+            let logs = JSON.parse(localStorage.getItem('hetraLogs')) || {};
+            
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el.type === 'checkbox') el.checked = val || false;
+                else el.value = val || '';
+            };
+
+            if(logs[date]) {
+                setVal('badminton', logs[date].badminton);
+                setVal('dumbbells', logs[date].dumbbells);
+                setVal('protein', logs[date].protein);
+                setVal('water', logs[date].water);
+                setVal('creatine', logs[date].creatine);
+                setVal('fruits', logs[date].fruits);
+                
+                const convertLegacy = (legacyStr) => legacyStr ? [{name: legacyStr, qty: 1, unit: "custom", cals: 0}] : [];
+                currentMeals.breakfast = logs[date].breakfastItems || convertLegacy(logs[date].breakfast);
+                currentMeals.morning_snack = logs[date].morning_snackItems || [];
+                currentMeals.lunch = logs[date].lunchItems || convertLegacy(logs[date].lunch);
+                currentMeals.evening_snack = logs[date].evening_snackItems || [];
+                currentMeals.dinner = logs[date].dinnerItems || convertLegacy(logs[date].dinner);
+            } else {
+                ['badminton', 'dumbbells', 'creatine', 'fruits'].forEach(id => setVal(id, false));
+                ['protein', 'water'].forEach(id => setVal(id, ''));
+                currentMeals = { breakfast: [], morning_snack: [], lunch: [], evening_snack: [], dinner: [] };
+            }
+            
+            window.confettiFired = false;
+            renderMealLists();
+            updateProgress();
+            updateCaloriesLive();
+        });
+
+        // INIT
+        document.getElementById('dateInput').valueAsDate = new Date();
+        initSettings();
+        document.getElementById('dateInput').dispatchEvent(new Event('change'));
+        loadHistory();
+        updateHomeDash();
+        
+        // Mobile PWA Install Prompt Logic
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+    </script>
+</body>
+</html>
